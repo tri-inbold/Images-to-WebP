@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #a855f7, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .top-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .control-btn:hover {
+            background: rgba(30, 41, 59, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .control-btn.settings {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+            gap: clamp(15px, 3vw, 25px);
+            padding: 20px 0;
+        }
+
+        .media-card, .control-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-card {
+            border-style: dashed;
+            border-width: 2px;
+            border-color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 350px;
+            padding: 20px;
+            font-size: 1.2rem;
+            color: #64748b;
+        }
+
+        .control-card-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .control-card-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .control-card-btn.download {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        
+        .control-card-btn.clear {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .control-card-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .media-preview {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .media-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-info {
+            padding: 20px;
+        }
+
+        .media-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .size-info {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .action-btn {
+            width: 100%;
+            height: 50px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn.processing {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .action-btn.download {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .settings-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .settings-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(239, 68, 68, 0.2);
+            border: none;
+            border-radius: 10px;
+            color: #ef4444;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #a855f7;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #94a3b8;
+            min-width: 90px;
+        }
+        
+        .options-group {
+            display: flex;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 15px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: white;
+            flex-grow: 1;
+        }
+
+        .option-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .option-btn.selected {
+            background: linear-gradient(135deg, #a855f7, #3b82f6);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .color-input-wrapper:has(input:focus) {
+            border-color: #a855f7;
+        }
+        
+        .hex-color-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: 500;
+            height: 45px;
+            outline: none;
+            width: 100px;
+        }
+        
+        .color-picker-preview {
+            width: 25px;
+            height: 25px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background-color: #ffffff;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .color-picker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .media-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .settings-content {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+           
+            <div class="media-grid" id="mediaGrid">
+                 <div class="control-card" id="controlCard">
+                    <span id="controlCardText">Drag and drop image files here</span>
+                    <div class="control-card-buttons" id="controlCardButtons"></div>
+                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="top-controls" id="topControls">
+        <button class="control-btn settings" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <div class="settings-title">Settings</div>
+                <button class="close-btn" id="closeSettings">✕</button>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🖼️ Image Settings</div>
+                <div class="setting-row">
+                    <div class="setting-label">Quality</div>
+                    <div class="options-group">
+                        <div class="option-btn" data-quality="60" data-type="image">Low</div>
+                        <div class="option-btn" data-quality="75" data-type="image">Medium</div>
+                        <div class="option-btn selected" data-quality="90" data-type="image">High</div>
+                        <div class="option-btn" data-quality="100" data-type="image">Maximum</div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label">Transparent</div>
+                    <div class="options-group">
+                        <div class="option-btn" id="transparentNone">None</div>
+                         <div class="color-input-wrapper">
+                             <input type="text" class="hex-color-input" id="hexColorInput" value="#FFFFFF">
+                             <div class="color-picker-preview" id="colorPickerPreview">
+                                 <input type="color" class="color-picker" id="bgColorPicker" value="#FFFFFF">
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let processedFiles = [];
+        let convertedFiles = [];
+        let settings = {
+            imageQuality: 90,
+            transparent: true,
+            bgColor: '#ffffff',
+        };
+        
+        // DOM Elements
+        const mediaGrid = document.getElementById('mediaGrid');
+        const controlCard = document.getElementById('controlCard');
+        const controlCardText = document.getElementById('controlCardText');
+        const controlCardButtons = document.getElementById('controlCardButtons');
+        
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        
+        const transparentNoneBtn = document.getElementById('transparentNone');
+        const hexColorInput = document.getElementById('hexColorInput');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const colorPickerPreview = document.getElementById('colorPickerPreview');
+        
+
+        // --- CORE LOGIC ---
+        function handleFiles(files) {
+            const mediaFiles = Array.from(files).filter(file => 
+                file.type.startsWith('image/')
+            );
+            
+            if (mediaFiles.length === 0) return;
+            
+            mediaFiles.forEach(file => addMediaCard(file));
+            updateControlCard();
+        }
+
+        function addMediaCard(file) {
+            const index = processedFiles.length;
+            
+            const card = document.createElement('div');
+            card.className = 'media-card';
+            
+            const originalSize = formatFileSize(file.size);
+            const fileUrl = URL.createObjectURL(file);
+            
+            card.innerHTML = `
+                <div class="media-preview">
+                    <img src="${fileUrl}" alt="${file.name}">
+                </div>
+                <div class="media-info">
+                    <div class="media-name">${file.name}</div>
+                    <div class="size-info" id="size-${index}">
+                        ${originalSize} > Converting...
+                    </div>
+                    <button class="action-btn processing" id="btn-${index}">
+                        Processing
+                        <div class="progress-bar" id="progress-${index}"></div>
+                    </button>
+                </div>
+            `;
+            
+            mediaGrid.insertBefore(card, controlCard);
+            processedFiles.push({ file, card, index });
+            
+            convertImageToWebP(file, index);
+        }
+
+        function updateControlCard() {
+            if (processedFiles.length > 0) {
+                controlCardText.textContent = "Drag and drop more files or manage your queue.";
+                controlCardButtons.innerHTML = `
+                    <button class="control-card-btn download">Download All</button>
+                    <button class="control-card-btn clear">Clear All</button>
+                `;
+                controlCardButtons.querySelector('.download').addEventListener('click', downloadAll);
+                controlCardButtons.querySelector('.clear').addEventListener('click', clearAll);
+            } else {
+                controlCardText.innerHTML = "Drag and drop image files here";
+                controlCardButtons.innerHTML = "";
+            }
+        }
+
+        function clearAll() {
+            processedFiles = [];
+            convertedFiles.forEach(file => URL.revokeObjectURL(file.url));
+            convertedFiles = [];
+            
+            document.querySelectorAll('.media-card').forEach(card => card.remove());
+            
+            updateControlCard();
+        }
+
+        function downloadAll() {
+            convertedFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.href = file.url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+        
+        // --- CONVERSION LOGIC ---
+         async function convertImageToWebP(file, index) {
+            try {
+                updateProgress(index, 25);
+                
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                img.onload = () => {
+                    updateProgress(index, 50);
+                    
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    if (!settings.transparent) {
+                        ctx.fillStyle = settings.bgColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    ctx.drawImage(img, 0, 0);
+                    updateProgress(index, 75);
+                    
+                    canvas.toBlob((blob) => {
+                        updateProgress(index, 100);
+                        
+                        const originalName = file.name.split('.')[0];
+                        const newSize = formatFileSize(blob.size);
+                        const savings = ((file.size - blob.size) / file.size * 100).toFixed(0);
+                        
+                        document.getElementById(`size-${index}`).textContent = 
+                            `${formatFileSize(file.size)} > ${newSize} (-${savings}%)`;
+                        
+                        const convertedFile = new File([blob], `${originalName}.webp`, {
+                            type: 'image/webp'
+                        });
+                        
+                        addDownloadButton(convertedFile, index);
+                        
+                    }, 'image/webp', settings.imageQuality / 100);
+                };
+                
+                img.src = URL.createObjectURL(file);
+                
+            } catch (error) {
+                console.error('Image conversion error:', error);
+                document.getElementById(`btn-${index}`).textContent = 'Error';
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+
+        // Global Drag and Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.body.addEventListener(eventName, e => e.preventDefault());
+        });
+
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // Settings Modal
+        settingsBtn.addEventListener('click', () => settingsModal.style.display = 'flex');
+        closeSettings.addEventListener('click', () => settingsModal.style.display = 'none');
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) settingsModal.style.display = 'none';
+        });
+
+        // Quality selection
+        document.querySelectorAll('.option-btn[data-quality]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const quality = btn.dataset.quality;
+                
+                document.querySelectorAll(`[data-type="${type}"]`).forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                
+                settings.imageQuality = parseInt(quality);
+            });
+        });
+        
+        // Transparent background settings
+        function updateTransparencySelection() {
+            if (settings.transparent) {
+                transparentNoneBtn.classList.add('selected');
+                hexColorInput.parentElement.classList.remove('selected');
+            } else {
+                transparentNoneBtn.classList.remove('selected');
+                hexColorInput.parentElement.classList.add('selected');
+            }
+        }
+        
+        transparentNoneBtn.addEventListener('click', () => {
+            settings.transparent = true;
+            updateTransparencySelection();
+        });
+
+        hexColorInput.addEventListener('click', () => {
+             settings.transparent = false;
+             updateTransparencySelection();
+        });
+        
+        hexColorInput.addEventListener('input', (e) => {
+            let value = e.target.value.toUpperCase();
+            if (!value.startsWith('#')) {
+                value = '#' + value;
+            }
+            settings.bgColor = value;
+            bgColorPicker.value = value;
+            colorPickerPreview.style.backgroundColor = value;
+            settings.transparent = false;
+            updateTransparencySelection();
+        });
+        
+        bgColorPicker.addEventListener('input', (e) => {
+            settings.bgColor = e.target.value;
+            hexColorInput.value = e.target.value.toUpperCase();
+            colorPickerPreview.style.backgroundColor = e.target.value;
+            settings.transparent = false;
+            updateTransparencySelection();
+        });
+
+        // --- UTILITY FUNCTIONS ---
+        function updateProgress(index, progress) {
+            const progressBar = document.getElementById(`progress-${index}`);
+            if (progressBar) {
+                progressBar.style.width = Math.min(100, progress) + '%';
+            }
+        }
+
+        function addDownloadButton(convertedFile, index) {
+            const btn = document.getElementById(`btn-${index}`);
+            const url = URL.createObjectURL(convertedFile);
+            
+            btn.className = 'action-btn download';
+            btn.innerHTML = `Download WebP`;
+            
+            btn.onclick = () => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = convertedFile.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            
+            convertedFiles.push({ url, name: convertedFile.name });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+        }
+        
+        // --- INITIALIZATION ---
+        updateControlCard();
+        updateTransparencySelection();
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            convertedFiles.forEach(file => URL.revokeObjectURL(file.url));
+        });
+    </script>
+</body>
+</html>
