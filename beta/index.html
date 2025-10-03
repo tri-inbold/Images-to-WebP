@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .top-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .control-btn:hover {
+            background: rgba(30, 41, 59, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .control-btn.settings {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+
+        .info-banner {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-banner-icon {
+            font-size: 1.5rem;
+        }
+
+        .info-banner-text {
+            flex: 1;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .info-link {
+            color: #60a5fa;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+            gap: clamp(15px, 3vw, 25px);
+            padding: 20px 0;
+        }
+
+        .media-card, .control-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-card {
+            border-style: dashed;
+            border-width: 2px;
+            border-color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 350px;
+            padding: 20px;
+            font-size: 1.2rem;
+            color: #64748b;
+        }
+
+        .control-card-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .control-card-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .control-card-btn.download {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        
+        .control-card-btn.clear {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .control-card-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .media-preview {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background: #1e293b;
+        }
+
+        .media-preview img, .media-preview video, .media-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-type-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .media-info {
+            padding: 20px;
+        }
+
+        .media-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .size-info {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .action-btn {
+            width: 100%;
+            height: 50px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn.processing {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .action-btn.download {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .action-btn.not-supported {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .settings-modal, .info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .settings-content, .info-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .settings-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(239, 68, 68, 0.2);
+            border: none;
+            border-radius: 10px;
+            color: #ef4444;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #a855f7;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #94a3b8;
+            min-width: 90px;
+        }
+        
+        .options-group {
+            display: flex;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 15px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: white;
+            flex-grow: 1;
+        }
+
+        .option-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .option-btn.selected {
+            background: linear-gradient(135deg, #a855f7, #3b82f6);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .color-input-wrapper:has(input:focus) {
+            border-color: #a855f7;
+        }
+        
+        .hex-color-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: 500;
+            height: 45px;
+            outline: none;
+            width: 100px;
+        }
+        
+        .color-picker-preview {
+            width: 25px;
+            height: 25px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background-color: #ffffff;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .color-picker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .info-content h3 {
+            color: #a855f7;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+
+        .info-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .info-content ol, .info-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            line-height: 1.8;
+            color: #cbd5e1;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .media-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .settings-content, .info-content {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="info-banner" id="infoBanner" style="display: none;">
+                <span class="info-banner-icon">ℹ️</span>
+                <div class="info-banner-text">
+                    <strong>Note:</strong> Animated GIF and Video conversion require a web server to work. 
+                    <span class="info-link" id="learnMoreLink">Learn how to enable it</span>
+                </div>
+            </div>
+           
+            <div class="media-grid" id="mediaGrid">
+                 <div class="control-card" id="controlCard">
+                    <span id="controlCardText">Drag and drop images, GIFs, or videos here</span>
+                    <div class="control-card-buttons" id="controlCardButtons"></div>
+                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="top-controls" id="topControls">
+        <button class="control-btn settings" id="settingsBtn" title="Settings">⚙️</button>
+    </div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <div class="settings-title">Settings</div>
+                <button class="close-btn" id="closeSettings">✕</button>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🖼️ Image Settings</div>
+                <div class="setting-row">
+                    <div class="setting-label">Quality</div>
+                    <div class="options-group">
+                        <div class="option-btn" data-quality="60" data-type="image">Low</div>
+                        <div class="option-btn" data-quality="75" data-type="image">Medium</div>
+                        <div class="option-btn selected" data-quality="90" data-type="image">High</div>
+                        <div class="option-btn" data-quality="100" data-type="image">Maximum</div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label">Transparent</div>
+                    <div class="options-group">
+                        <div class="option-btn selected" id="transparentNone">None</div>
+                         <div class="color-input-wrapper">
+                             <input type="text" class="hex-color-input" id="hexColorInput" value="#FFFFFF">
+                             <div class="color-picker-preview" id="colorPickerPreview">
+                                 <input type="color" class="color-picker" id="bgColorPicker" value="#FFFFFF">
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🎬 Video/GIF Settings</div>
+                <div class="setting-row">
+                    <div class="setting-label">Quality</div>
+                    <div class="options-group">
+                        <div class="option-btn" data-quality="50" data-type="video">Low</div>
+                        <div class="option-btn selected" data-quality="75" data-type="video">Medium</div>
+                        <div class="option-btn" data-quality="90" data-type="video">High</div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label">FPS</div>
+                    <div class="options-group">
+                        <div class="option-btn" data-fps="15">15</div>
+                        <div class="option-btn selected" data-fps="24">24</div>
+                        <div class="option-btn" data-fps="30">30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-modal" id="infoModal">
+        <div class="info-content">
+            <div class="settings-header">
+                <div class="settings-title">How to Enable GIF/Video Conversion</div>
+                <button class="close-btn" id="closeInfo">✕</button>
+            </div>
+
+            <p>Due to browser security restrictions, animated GIF and video conversion requires running this file from a web server rather than opening it directly.</p>
+
+            <h3>Quick Setup Options:</h3>
+
+            <p><strong>Option 1: Python (Easiest)</strong></p>
+            <ol>
+                <li>Open terminal/command prompt in the folder with this HTML file</li>
+                <li>Run: <code>python -m http.server 8000</code></li>
+                <li>Open browser and go to: <code>http://localhost:8000</code></li>
+            </ol>
+
+            <p><strong>Option 2: Node.js</strong></p>
+            <ol>
+                <li>Install http-server: <code>npm install -g http-server</code></li>
+                <li>Run in folder: <code>http-server</code></li>
+                <li>Open the URL shown in terminal</li>
+            </ol>
+
+            <p><strong>Option 3: GitHub Pages (Recommended for Sharing)</strong></p>
+            <ol>
+                <li>Create a GitHub account at <code>github.com</code></li>
+                <li>Create a new repository (e.g., "webp-converter")</li>
+                <li>Upload this HTML file</li>
+                <li>Go to Settings → Pages</li>
+                <li>Enable GitHub Pages from main branch</li>
+                <li>Access at: <code>https://yourusername.github.io/webp-converter</code></li>
+            </ol>
+
+            <p><strong>Option 4: VS Code</strong></p>
+            <ol>
+                <li>Install "Live Server" extension</li>
+                <li>Right-click this HTML file</li>
+                <li>Select "Open with Live Server"</li>
+            </ol>
+
+            <p><strong>What Works Without Server:</strong></p>
+            <ul>
+                <li>✅ Static images (JPG, PNG) → WebP</li>
+                <li>❌ Animated GIFs → WebP (needs server)</li>
+                <li>❌ Videos → WebP (needs server)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        let processedFiles = [];
+        let convertedFiles = [];
+        let settings = {
+            imageQuality: 90,
+            videoQuality: 75,
+            fps: 24,
+            transparent: true,
+            bgColor: '#ffffff',
+        };
+
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+        let isServerMode = window.location.protocol !== 'file:';
+        
+        // DOM Elements
+        const mediaGrid = document.getElementById('mediaGrid');
+        const controlCard = document.getElementById('controlCard');
+        const controlCardText = document.getElementById('controlCardText');
+        const controlCardButtons = document.getElementById('controlCardButtons');
+        
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const infoModal = document.getElementById('infoModal');
+        const closeInfo = document.getElementById('closeInfo');
+        const learnMoreLink = document.getElementById('learnMoreLink');
+        
+        const transparentNoneBtn = document.getElementById('transparentNone');
+        const hexColorInput = document.getElementById('hexColorInput');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const colorPickerPreview = document.getElementById('colorPickerPreview');
+
+        // --- FFMPEG INITIALIZATION (Only in server mode) ---
+        async function loadFFmpeg() {
+            if (!isServerMode || ffmpegLoaded) return;
+            
+            try {
+                const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+                const { fetchFile, toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+                
+                ffmpeg = new FFmpeg();
+                
+                const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+                await ffmpeg.load({
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                });
+                
+                ffmpegLoaded = true;
+                window.fetchFile = fetchFile;
+            } catch (error) {
+                console.error('FFmpeg loading error:', error);
+            }
+        }
+
+        // --- CORE LOGIC ---
+        function handleFiles(files) {
+            const mediaFiles = Array.from(files).filter(file => 
+                file.type.startsWith('image/') || file.type.startsWith('video/')
+            );
+            
+            if (mediaFiles.length === 0) return;
+            
+            mediaFiles.forEach(file => addMediaCard(file));
+            updateControlCard();
+        }
+
+        function getMediaType(file) {
+            if (file.type === 'image/gif') return 'gif';
+            if (file.type.startsWith('video/')) return 'video';
+            return 'image';
+        }
+
+        function addMediaCard(file) {
+            const index = processedFiles.length;
+            const mediaType = getMediaType(file);
+            
+            const card = document.createElement('div');
+            card.className = 'media-card';
+            
+            const originalSize = formatFileSize(file.size);
+            const fileUrl = URL.createObjectURL(file);
+            
+            let previewHtml = '';
+            if (mediaType === 'video') {
+                previewHtml = `<video src="${fileUrl}" muted loop autoplay></video>`;
+            } else {
+                previewHtml = `<img src="${fileUrl}" alt="${file.name}">`;
+            }
+            
+            const badge = mediaType === 'gif' ? 'GIF' : mediaType === 'video' ? 'VIDEO' : 'IMAGE';
+            
+            card.innerHTML = `
+                <div class="media-preview">
+                    ${previewHtml}
+                    <div class="media-type-badge">${badge}</div>
+                </div>
+                <div class="media-info">
+                    <div class="media-name">${file.name}</div>
+                    <div class="size-info" id="size-${index}">
+                        ${originalSize} > Converting...
+                    </div>
+                    <button class="action-btn processing" id="btn-${index}">
+                        Processing
+                        <div class="progress-bar" id="progress-${index}"></div>
+                    </button>
+                </div>
+            `;
+            
+            mediaGrid.insertBefore(card, controlCard);
+            processedFiles.push({ file, card, index, mediaType });
+            
+            if (mediaType === 'image') {
+                convertImageToWebP(file, index);
+            } else if (isServerMode) {
+                convertAnimatedToWebP(file, index, mediaType);
+            } else {
+                showNotSupported(index, mediaType);
+            }
+        }
+
+        function showNotSupported(index, mediaType) {
+            const btn = document.getElementById(`btn-${index}`);
+            const sizeInfo = document.getElementById(`size-${index}`);
+            
+            btn.className = 'action-btn not-supported';
+            btn.textContent = 'Needs Web Server';
+            btn.onclick = () => infoModal.style.display = 'flex';
+            
+            sizeInfo.textContent = `${mediaType.toUpperCase()} requires web server (click button for help)`;
+        }
+
+        function updateControlCard() {
+            if (processedFiles.length > 0) {
+                controlCardText.textContent = "Drag and drop more files or manage your queue.";
+                controlCardButtons.innerHTML = `
+                    <button class="control-card-btn download">Download All</button>
+                    <button class="control-card-btn clear">Clear All</button>
+                `;
+                controlCardButtons.querySelector('.download').addEventListener('click', downloadAll);
+                controlCardButtons.querySelector('.clear').addEventListener('click', clearAll);
+            } else {
+                controlCardText.innerHTML = "Drag and drop images, GIFs, or videos here";
+                controlCardButtons.innerHTML = "";
+            }
+        }
+
+        function clearAll() {
+            processedFiles = [];
+            convertedFiles.forEach(file => URL.revokeObjectURL(file.url));
+            convertedFiles = [];
+            
+            document.querySelectorAll('.media-card').forEach(card => card.remove());
+            
+            updateControlCard();
+        }
+
+        function downloadAll() {
+            convertedFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.href = file.url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+        
+        // --- CONVERSION LOGIC ---
+        async function convertImageToWebP(file, index) {
+            try {
+                updateProgress(index, 25);
+                
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                img.onload = () => {
+                    updateProgress(index, 50);
+                    
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    if (!settings.transparent) {
+                        ctx.fillStyle = settings.bgColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    ctx.drawImage(img, 0, 0);
+                    updateProgress(index, 75);
+                    
+                    canvas.toBlob((blob) => {
+                        updateProgress(index, 100);
+                        
+                        const originalName = file.name.split('.')[0];
+                        const newSize = formatFileSize(blob.size);
+                        const savings = ((file.size - blob.size) / file.size * 100).toFixed(0);
+                        
+                        document.getElementById(`size-${index}`).textContent = 
+                            `${formatFileSize(file.size)} > ${newSize} (-${savings}%)`;
+                        
+                        const convertedFile = new File([blob], `${originalName}.webp`, {
+                            type: 'image/webp'
+                        });
+                        
+                        addDownloadButton(convertedFile, index);
+                        
+                    }, 'image/webp', settings.imageQuality / 100);
+                };
+                
+                img.src = URL.createObjectURL(file);
+                
+            } catch (error) {
+                console.error('Image conversion error:', error);
+                document.getElementById(`btn-${index}`).textContent = 'Error';
+            }
+        }
+
+        async function convertAnimatedToWebP(file, index, mediaType) {
+            try {
+                await loadFFmpeg();
+                
+                if (!ffmpegLoaded) {
+                    showNotSupported(index, mediaType);
+                    return;
+                }
+                
+                updateProgress(index, 10);
+                
+                const inputName = mediaType === 'gif' ? 'input.gif' : 'input.mp4';
+                const outputName = 'output.webp';
+                
+                const fileData = await window.fetchFile(file);
+                await ffmpeg.writeFile(inputName, fileData);
+                
+                updateProgress(index, 30);
+                
+                const quality = settings.videoQuality;
+                const fps = settings.fps;
+                
+                await ffmpeg.exec([
+                    '-i', inputName,
+                    '-vcodec', 'libwebp',
+                    '-filter:v', `fps=${fps}`,
+                    '-lossless', '0',
+                    '-compression_level', '6',
+                    '-q:v', String(quality),
+                    '-loop', '0',
+                    '-preset', 'default',
+                    '-an',
+                    '-vsync', '0',
+                    outputName
+                ]);
+                
+                updateProgress(index, 80);
+                
+                const data = await ffmpeg.readFile(outputName);
+                const blob = new Blob([data.buffer], { type: 'image/webp' });
+                
+                updateProgress(index, 100);
+                
+                const originalName = file.name.split('.')[0];
+                const newSize = formatFileSize(blob.size);
+                const savings = ((file.size - blob.size) / file.size * 100).toFixed(0);
+                
+                document.getElementById(`size-${index}`).textContent = 
+                    `${formatFileSize(file.size)} > ${newSize} (-${savings}%)`;
+                
+                const convertedFile = new File([blob], `${originalName}.webp`, {
+                    type: 'image/webp'
+                });
+                
+                addDownloadButton(convertedFile, index);
+                
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+                
+            } catch (error) {
+                console.error('Animated conversion error:', error);
+                showNotSupported(index, mediaType);
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.body.addEventListener(eventName, e => e.preventDefault());
+        });
+
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            handleFiles(e.dataTransfer.files);
